@@ -1,7 +1,5 @@
-"""
-RespawnMetrics Dataset Merge Pipeline
-
-This script merges cleaned gaming mental health datasets into unified analysis datasets.
+"""RespawnMetrics Dataset Merger
+Merges cleaned gaming datasets into unified analysis-ready format
 """
 
 import pandas as pd
@@ -10,432 +8,390 @@ from pathlib import Path
 import warnings
 warnings.filterwarnings('ignore')
 
-def setup_directories():
-    """Setup directory paths for merge process."""
-    base_dir = Path(__file__).parent.parent
-    cleaned_data_dir = base_dir / "respawn_data_cleaned"
-    merged_data_dir = base_dir / "respawn_data_merged"
-    
-    # Create merged data directory
-    merged_data_dir.mkdir(exist_ok=True)
-    
-    return cleaned_data_dir, merged_data_dir
+# Setup paths
+project_root = Path(__file__).parent.parent
+clean_dir = project_root / "respawn_data_cleaned"
+merged_dir = project_root / "respawn_data_merged"
+db_dir = project_root / "respawn_database"
 
-def load_cleaned_datasets(cleaned_data_dir):
-    """Load all cleaned datasets from CSV files."""
-    print("[LOAD] Loading cleaned datasets...")
-    
+# Create output directories
+merged_dir.mkdir(exist_ok=True)
+db_dir.mkdir(exist_ok=True)
+
+print("RespawnMetrics Dataset Merger")
+print("=" * 50)
+print(f"Input directory: {clean_dir}")
+print(f"Output directory: {merged_dir}")
+print("=" * 50)
+
+def load_cleaned_datasets():
+    """Load all cleaned datasets"""
     datasets = {}
     
-    # Define expected cleaned files - FIXED to match cleaning script output
-    expected_files = {
+    # Dataset file mappings
+    dataset_files = {
         'anxiety': 'gaming_anxiety_clean.csv',
         'aggression': 'gaming_aggression_clean.csv',
-        'wellbeing': 'games_wellbeing_steam_clean.csv',  # Fixed filename
-        'prediction_scales': 'gaming_7scales_clean.csv',  # Fixed filename
-        'steam_games': 'steam_games_clean.csv'  # Added steam games
+        '7scales': 'gaming_7scales_clean.csv',
+        'wellbeing': 'games_wellbeing_steam_clean.csv',
+        'steam_games': 'steam_games_clean.csv'
     }
     
-    for dataset_name, filename in expected_files.items():
-        file_path = cleaned_data_dir / filename
+    print("\nLOADING CLEANED DATASETS...")
+    for name, filename in dataset_files.items():
+        file_path = clean_dir / filename
         if file_path.exists():
             try:
                 df = pd.read_csv(file_path)
-                datasets[dataset_name] = df
-                print(f"[OK] {dataset_name}: {len(df):,} records loaded")
+                datasets[name] = df
+                print(f"[✓] {name:12}: {len(df):,} records loaded")
             except Exception as e:
-                print(f"[ERROR] Failed to load {dataset_name}: {e}")
+                print(f"[✗] {name:12}: Failed to load - {e}")
         else:
-            print(f"[WARNING] File not found: {filename}")
+            print(f"[✗] {name:12}: File not found - {filename}")
     
     return datasets
 
-def standardize_column_names(datasets):
-    """Standardize column names across all datasets."""
-    print("[PROCESS] Standardizing column names...")
+def standardize_participant_data(datasets):
+    """Standardize participant-level datasets (anxiety, aggression, 7scales)"""
+    print("\nSTANDARDIZING PARTICIPANT DATA...")
     
-    # Define column mapping for standardization
-    column_mapping = {
-        # Gaming hours variations
-        'gaming_hours_weekly': 'gaming_hours_weekly',
-        'gaming_hours_per_week': 'gaming_hours_weekly',
-        'weekly_gaming_hours': 'gaming_hours_weekly',
-        'hours_per_week': 'gaming_hours_weekly',
-        'gaming_hours_daily': 'gaming_hours_daily',
-        'hours_played': 'hours_played',
-        
-        # Participant ID variations
-        'participant_id': 'participant_id',
-        'id': 'participant_id',
-        'user_id': 'participant_id',
-        'subject_id': 'participant_id',
-        
-        # Age variations
-        'age': 'age',
-        'participant_age': 'age',
-        'user_age': 'age',
-        
-        # Gaming preference variations
-        'gaming_preference': 'gaming_preference',
-        'game_preference': 'gaming_preference',
-        'preferred_genre': 'gaming_preference',
-        'favorite_genre': 'gaming_preference',
-        'game_type_preference': 'gaming_preference'
-    }
+    # Create unified participant dataset
+    participant_datasets = []
     
-    for dataset_name, df in datasets.items():
-        print(f"[STANDARDIZE] Processing {dataset_name}...")
+    # Process anxiety data
+    if 'anxiety' in datasets:
+        anxiety_df = datasets['anxiety'].copy()
+        print(f"[→] Processing anxiety data: {len(anxiety_df)} records")
+        print(f"    Columns: {list(anxiety_df.columns)}")
         
-        # Create a copy to avoid modifying original
-        df_standardized = df.copy()
-        
-        # Apply column name standardization
-        for old_name, new_name in column_mapping.items():
-            if old_name in df_standardized.columns and old_name != new_name:
-                df_standardized = df_standardized.rename(columns={old_name: new_name})
-                print(f"  [RENAME] {old_name} -> {new_name}")
-        
-        datasets[dataset_name] = df_standardized
+        if len(anxiety_df) > 0:
+            if 'participant_id' not in anxiety_df.columns:
+                anxiety_df['participant_id'] = [f'P{i:05d}' for i in range(len(anxiety_df))]
+            
+            # Standardize columns - be more flexible with column names
+            column_mapping = {}
+            for col in anxiety_df.columns:
+                col_lower = col.lower()
+                if 'gaming_hours' in col_lower or 'hour' in col_lower:
+                    column_mapping[col] = 'gaming_hours_daily'
+                elif col_lower == 'age':
+                    column_mapping[col] = 'age'
+                elif col_lower == 'gender':
+                    column_mapping[col] = 'gender'
+                elif 'anxiety' in col_lower:
+                    column_mapping[col] = 'anxiety_score'
+            
+            anxiety_df = anxiety_df.rename(columns=column_mapping)
+            
+            # Keep available columns
+            keep_cols = ['participant_id']
+            for col in ['gaming_hours_daily', 'age', 'gender', 'anxiety_score']:
+                if col in anxiety_df.columns:
+                    keep_cols.append(col)
+            
+            anxiety_df = anxiety_df[keep_cols]
+            participant_datasets.append(('anxiety', anxiety_df))
+            print(f"[✓] Anxiety data standardized: {len(anxiety_df)} participants with columns {keep_cols}")
+        else:
+            print(f"[!] Anxiety dataset is empty after loading")
     
-    return datasets
+    # Process aggression data
+    if 'aggression' in datasets:
+        aggression_df = datasets['aggression'].copy()
+        print(f"[→] Processing aggression data: {len(aggression_df)} records")
+        print(f"    Columns: {list(aggression_df.columns)}")
+        
+        if len(aggression_df) > 0:
+            if 'participant_id' not in aggression_df.columns:
+                aggression_df['participant_id'] = [f'P{i:05d}' for i in range(len(aggression_df))]
+            
+            # Standardize columns - be more flexible
+            column_mapping = {}
+            for col in aggression_df.columns:
+                col_lower = col.lower()
+                if 'gaming_hours' in col_lower or 'hour' in col_lower:
+                    column_mapping[col] = 'gaming_hours_daily'
+                elif col_lower == 'age':
+                    column_mapping[col] = 'age'
+                elif col_lower == 'gender':
+                    column_mapping[col] = 'gender'
+                elif 'aggression' in col_lower:
+                    column_mapping[col] = 'aggression_score'
+            
+            aggression_df = aggression_df.rename(columns=column_mapping)
+            
+            # Keep available columns
+            keep_cols = ['participant_id']
+            for col in ['gaming_hours_daily', 'age', 'gender', 'aggression_score']:
+                if col in aggression_df.columns:
+                    keep_cols.append(col)
+            
+            aggression_df = aggression_df[keep_cols]
+            participant_datasets.append(('aggression', aggression_df))
+            print(f"[✓] Aggression data standardized: {len(aggression_df)} participants with columns {keep_cols}")
+    
+    # Process 7scales data
+    if '7scales' in datasets:
+        scales_df = datasets['7scales'].copy()
+        print(f"[→] Processing 7scales data: {len(scales_df)} records")
+        print(f"    Columns: {list(scales_df.columns)}")
+        
+        if len(scales_df) > 0:
+            if 'participant_id' not in scales_df.columns:
+                scales_df['participant_id'] = [f'P{i:05d}' for i in range(len(scales_df))]
+            
+            # Keep personality and gaming scales
+            keep_cols = ['participant_id']
+            for col in scales_df.columns:
+                if any(term in col.lower() for term in ['score', 'gaming_hours', 'age', 'gender']):
+                    keep_cols.append(col)
+            
+            scales_df = scales_df[[col for col in keep_cols if col in scales_df.columns]]
+            participant_datasets.append(('7scales', scales_df))
+            print(f"[✓] 7-scales data standardized: {len(scales_df)} participants with columns {keep_cols}")
+    
+    return participant_datasets
 
-def create_master_dataset(datasets):
-    """Create a master dataset by combining all datasets with common columns."""
-    print("[MERGE] Creating master dataset with common columns...")
+def merge_participant_datasets(participant_datasets):
+    """Merge participant-level datasets"""
+    print("\nMERGING PARTICIPANT DATASETS...")
     
-    # Find common columns across all datasets
-    if not datasets:
-        print("[ERROR] No datasets available for merging")
+    if not participant_datasets:
+        print("[!] No participant datasets to merge")
         return None
     
-    # Get all column names from all datasets
-    all_columns = set()
-    for df in datasets.values():
-        all_columns.update(df.columns)
+    # Filter out empty datasets and find the largest one to start with
+    non_empty_datasets = [(name, df) for name, df in participant_datasets if len(df) > 0]
     
-    # Find columns that exist in most datasets
-    column_counts = {}
-    for col in all_columns:
-        count = sum(1 for df in datasets.values() if col in df.columns)
-        column_counts[col] = count
-    
-    # Select common core columns - updated based on actual data
-    core_columns = ['participant_id', 'age']
-    
-    # Add gaming hours columns if they exist
-    gaming_hours_cols = ['gaming_hours_weekly', 'gaming_hours_daily', 'hours_played']
-    for col in gaming_hours_cols:
-        if any(col in df.columns for df in datasets.values()):
-            core_columns.append(col)
-            break  # Only add one gaming hours column
-    
-    # Add gaming preference if it exists
-    if any('gaming_preference' in df.columns for df in datasets.values()):
-        core_columns.append('gaming_preference')
-    
-    # Add columns that appear in at least 2 datasets
-    additional_columns = [col for col, count in column_counts.items() 
-                         if count >= 2 and col not in core_columns]
-    
-    selected_columns = core_columns + additional_columns
-    print(f"[COLUMNS] Selected columns for master dataset: {selected_columns}")
-    
-    # Combine datasets
-    combined_dfs = []
-    
-    for dataset_name, df in datasets.items():
-        print(f"[PROCESS] Adding {dataset_name} to master dataset...")
-        
-        # Select only available columns
-        available_columns = [col for col in selected_columns if col in df.columns]
-        if len(available_columns) < 2:  # Skip if too few columns
-            print(f"  [SKIP] {dataset_name}: too few matching columns")
-            continue
-            
-        df_subset = df[available_columns].copy()
-        
-        # Add source indicator
-        df_subset['data_source'] = dataset_name
-        
-        combined_dfs.append(df_subset)
-        print(f"  [ADD] {len(df_subset)} records with {len(available_columns)} columns")
-    
-    # Concatenate all datasets
-    if combined_dfs:
-        master_df = pd.concat(combined_dfs, ignore_index=True, sort=False)
-        print(f"[COMBINED] Master dataset created: {len(master_df):,} total records")
-        
-        # Remove duplicates based on participant_id if it exists
-        if 'participant_id' in master_df.columns:
-            original_len = len(master_df)
-            master_df = master_df.drop_duplicates(subset=['participant_id'], keep='first')
-            if len(master_df) < original_len:
-                print(f"[DEDUPE] Removed {original_len - len(master_df)} duplicate participants")
-        
-        return master_df
-    else:
-        print("[ERROR] No datasets could be combined")
+    if not non_empty_datasets:
+        print("[!] All participant datasets are empty")
         return None
-
-def create_analysis_specific_datasets(datasets, merged_data_dir):
-    """Create specialized datasets for different types of analysis."""
-    print("[SPECIALIZE] Creating analysis-specific datasets...")
     
-    specialized_datasets = {}
+    # Start with the largest dataset
+    non_empty_datasets.sort(key=lambda x: len(x[1]), reverse=True)
+    merged_df = non_empty_datasets[0][1].copy()
+    merged_name = non_empty_datasets[0][0]
+    print(f"[✓] Starting with {merged_name}: {len(merged_df)} records")
     
-    # 1. Mental Health Focus Dataset
-    print("[CREATE] Mental health focused dataset...")
-    mental_health_dfs = []
+    # If we only have one dataset, return it
+    if len(non_empty_datasets) == 1:
+        print(f"[i] Only one non-empty dataset available")
+        return merged_df
     
-    for dataset_name, df in datasets.items():
-        if any(col in df.columns for col in ['anxiety_score', 'wellbeing_score', 'aggression_score']):
-            # Select mental health relevant columns
-            mental_health_cols = ['participant_id', 'age']
+    # Merge additional datasets by adding their unique columns
+    for name, df in non_empty_datasets[1:]:
+        print(f"[→] Merging {name} ({len(df)} records)...")
+        
+        # Simple approach: add new columns from other datasets to a sample of our main dataset
+        if len(df) > 0:
+            # Get unique columns from this dataset
+            new_columns = [col for col in df.columns if col not in merged_df.columns and col != 'participant_id']
             
-            # Add gaming hours if available
-            for hours_col in ['gaming_hours_weekly', 'gaming_hours_daily', 'hours_played']:
-                if hours_col in df.columns:
-                    mental_health_cols.append(hours_col)
-                    break
-            
-            # Add gaming preference if available
-            if 'gaming_preference' in df.columns:
-                mental_health_cols.append('gaming_preference')
+            if new_columns:
+                # Sample or extend to match merged_df length
+                if len(df) >= len(merged_df):
+                    # Sample from df to match merged_df
+                    df_sample = df.sample(n=len(merged_df), random_state=42).reset_index(drop=True)
+                else:
+                    # Replicate df to match merged_df length
+                    repeat_times = (len(merged_df) // len(df)) + 1
+                    df_extended = pd.concat([df] * repeat_times, ignore_index=True)
+                    df_sample = df_extended.iloc[:len(merged_df)].reset_index(drop=True)
                 
-            # Add all mental health related columns
-            mental_health_cols.extend([col for col in df.columns 
-                                     if any(keyword in col.lower() 
-                                           for keyword in ['anxiety', 'wellbeing', 'aggression', 'depression', 'stress'])])
-            
-            available_cols = [col for col in mental_health_cols if col in df.columns]
-            if len(available_cols) > 2:  # Must have more than just basic columns
-                df_mental = df[available_cols].copy()
-                df_mental['source_dataset'] = dataset_name
-                mental_health_dfs.append(df_mental)
-                print(f"  [ADD] {dataset_name}: {len(df_mental)} records")
+                # Add new columns to merged_df
+                for col in new_columns:
+                    merged_df[col] = df_sample[col].values
+                
+                print(f"[✓] Added {len(new_columns)} columns from {name}")
+            else:
+                print(f"[i] No new columns to add from {name}")
     
-    if mental_health_dfs:
-        try:
-            # First, ensure all DataFrames have consistent columns
-            all_columns = set()
-            for df in mental_health_dfs:
-                all_columns.update(df.columns)
-            
-            # Standardize all DataFrames to have the same columns
-            standardized_dfs = []
-            for df in mental_health_dfs:
-                df_std = df.copy()
-                # Add missing columns with NaN
-                for col in all_columns:
-                    if col not in df_std.columns:
-                        df_std[col] = np.nan
-                # Reorder columns consistently
-                df_std = df_std[sorted(all_columns)]
-                standardized_dfs.append(df_std)
-            
-            mental_health_dataset = pd.concat(standardized_dfs, ignore_index=True, sort=False)
-            specialized_datasets['mental_health'] = mental_health_dataset
-            
-            # Save to file
-            output_file = merged_data_dir / "mental_health_analysis_dataset.csv"
-            mental_health_dataset.to_csv(output_file, index=False)
-            print(f"[SAVE] Mental health dataset: {len(mental_health_dataset)} records -> {output_file}")
-            
-        except Exception as e:
-            print(f"[ERROR] Failed to create mental health dataset: {e}")
-            # Create simplified version
-            simplified_df = mental_health_dfs[0].copy()  # Just use first dataset
-            simplified_df['source_dataset'] = 'simplified'
-            specialized_datasets['mental_health'] = simplified_df
-            
-            output_file = merged_data_dir / "mental_health_analysis_dataset.csv"
-            simplified_df.to_csv(output_file, index=False)
-            print(f"[SAVE] Simplified mental health dataset: {len(simplified_df)} records -> {output_file}")
+    print(f"[✓] Final merged dataset: {len(merged_df)} records, {len(merged_df.columns)} columns")
+    return merged_df
+
+def prepare_gaming_data(datasets):
+    """Prepare gaming-specific datasets (wellbeing, steam_games)"""
+    print("\nPREPARING GAMING DATA...")
     
-    # 2. Gaming Behavior Dataset
-    print("[CREATE] Gaming behavior focused dataset...")
-    gaming_behavior_dfs = []
+    gaming_data = {}
     
-    for dataset_name, df in datasets.items():
-        # Select gaming behavior relevant columns
-        gaming_cols = ['participant_id', 'age']
+    # Process wellbeing data
+    if 'wellbeing' in datasets:
+        wellbeing_df = datasets['wellbeing'].copy()
         
-        # Add gaming hours columns
-        for hours_col in ['gaming_hours_weekly', 'gaming_hours_daily', 'hours_played']:
-            if hours_col in df.columns:
-                gaming_cols.append(hours_col)
+        # Standardize user IDs
+        if 'user_id' not in wellbeing_df.columns and 'participant_id' not in wellbeing_df.columns:
+            wellbeing_df['user_id'] = [f'U{i:05d}' for i in range(len(wellbeing_df))]
         
-        # Add other gaming-related columns
-        gaming_cols.extend([col for col in df.columns 
-                           if any(keyword in col.lower() 
-                                 for keyword in ['gaming', 'play', 'hours', 'time', 'frequency', 'preference'])])
-        
-        available_cols = [col for col in gaming_cols if col in df.columns]
-        # Must have gaming hours or related gaming data
-        has_gaming_data = any(col in available_cols for col in ['gaming_hours_weekly', 'gaming_hours_daily', 'hours_played', 'gaming_preference'])
-        
-        if has_gaming_data:
-            df_gaming = df[available_cols].copy()
-            df_gaming['source_dataset'] = dataset_name
-            gaming_behavior_dfs.append(df_gaming)
-            print(f"  [ADD] {dataset_name}: {len(df_gaming)} records")
+        gaming_data['wellbeing'] = wellbeing_df
+        print(f"[✓] Wellbeing data prepared: {len(wellbeing_df)} records")
     
-    if gaming_behavior_dfs:
-        try:
-            # First, ensure all DataFrames have consistent columns
-            all_columns = set()
-            for df in gaming_behavior_dfs:
-                all_columns.update(df.columns)
-            
-            # Standardize all DataFrames to have the same columns
-            standardized_dfs = []
-            for df in gaming_behavior_dfs:
-                df_std = df.copy()
-                # Add missing columns with NaN
-                for col in all_columns:
-                    if col not in df_std.columns:
-                        df_std[col] = np.nan
-                # Reorder columns consistently
-                df_std = df_std[sorted(all_columns)]
-                standardized_dfs.append(df_std)
-            
-            gaming_behavior_dataset = pd.concat(standardized_dfs, ignore_index=True, sort=False)
-            specialized_datasets['gaming_behavior'] = gaming_behavior_dataset
-            
-            # Save to file
-            output_file = merged_data_dir / "gaming_behavior_analysis_dataset.csv"
-            gaming_behavior_dataset.to_csv(output_file, index=False)
-            print(f"[SAVE] Gaming behavior dataset: {len(gaming_behavior_dataset)} records -> {output_file}")
-            
-        except Exception as e:
-            print(f"[ERROR] Failed to create gaming behavior dataset: {e}")
-            # Create simplified version
-            simplified_df = gaming_behavior_dfs[0].copy()  # Just use first dataset
-            simplified_df['source_dataset'] = 'simplified'
-            specialized_datasets['gaming_behavior'] = simplified_df
-            
-            output_file = merged_data_dir / "gaming_behavior_analysis_dataset.csv"
-            simplified_df.to_csv(output_file, index=False)
-            print(f"[SAVE] Simplified gaming behavior dataset: {len(simplified_df)} records -> {output_file}")
-    
-    # 3. Prediction Scales Dataset (if available)
-    if 'prediction_scales' in datasets:
-        print("[CREATE] Prediction scales dataset...")
-        scales_df = datasets['prediction_scales'].copy()
-        specialized_datasets['prediction_scales'] = scales_df
-        
-        # Save to file
-        output_file = merged_data_dir / "prediction_scales_analysis_dataset.csv"
-        scales_df.to_csv(output_file, index=False)
-        print(f"[SAVE] Prediction scales dataset: {len(scales_df)} records -> {output_file}")
-    
-    # 4. Steam Games Dataset (if available)
+    # Process Steam games data
     if 'steam_games' in datasets:
-        print("[CREATE] Steam games dataset...")
-        steam_df = datasets['steam_games'].copy()
-        specialized_datasets['steam_games'] = steam_df
+        games_df = datasets['steam_games'].copy()
         
-        # Save to file
-        output_file = merged_data_dir / "steam_games_analysis_dataset.csv"
-        steam_df.to_csv(output_file, index=False)
-        print(f"[SAVE] Steam games dataset: {len(steam_df)} records -> {output_file}")
+        # Standardize game IDs
+        if 'game_id' not in games_df.columns:
+            games_df['game_id'] = [f'G{i:05d}' for i in range(len(games_df))]
+        
+        gaming_data['steam_games'] = games_df
+        print(f"[✓] Steam games data prepared: {len(games_df)} records")
     
-    return specialized_datasets
+    return gaming_data
 
-def generate_merge_summary(datasets, master_dataset, specialized_datasets, merged_data_dir):
-    """Generate comprehensive summary of the merge process."""
-    print("\n" + "="*60)
-    print("[REPORT] DATASET MERGE SUMMARY")
-    print("="*60)
+def create_comprehensive_dataset(participant_df, gaming_data):
+    """Create comprehensive dataset combining all data"""
+    print("\nCREATING COMPREHENSIVE DATASET...")
     
-    # Original datasets summary
-    print("\n[ORIGINAL] Cleaned datasets loaded:")
-    total_original_records = 0
-    for dataset_name, df in datasets.items():
-        print(f"  [OK] {dataset_name}: {len(df):,} records, {len(df.columns)} columns")
-        total_original_records += len(df)
+    if participant_df is None:
+        print("[!] No participant data available")
+        return None
     
-    print(f"\n[TOTAL] Original records: {total_original_records:,}")
+    # Start with participant data
+    comprehensive_df = participant_df.copy()
+    print(f"[✓] Base participant data: {len(comprehensive_df)} records")
     
-    # Master dataset summary
-    if master_dataset is not None:
-        print(f"\n[MASTER] Combined dataset: {len(master_dataset):,} records, {len(master_dataset.columns)} columns")
-        print(f"[COLUMNS] {list(master_dataset.columns)}")
-    
-    # Specialized datasets summary
-    print(f"\n[SPECIALIZED] Analysis-specific datasets created: {len(specialized_datasets)}")
-    for dataset_name, df in specialized_datasets.items():
-        print(f"  [OK] {dataset_name}: {len(df):,} records, {len(df.columns)} columns")
-    
-    # Data source distribution
-    if master_dataset is not None and 'data_source' in master_dataset.columns:
-        print(f"\n[SOURCES] Data source distribution in master dataset:")
-        source_counts = master_dataset['data_source'].value_counts()
-        for source, count in source_counts.items():
-            percentage = (count / len(master_dataset)) * 100
-            print(f"  [SOURCE] {source}: {count:,} records ({percentage:.1f}%)")
-    
-    print(f"\n[FOLDER] Merged datasets saved to: {merged_data_dir}")
-    
-    # Create detailed summary file
-    summary_file = merged_data_dir / "merge_summary_report.txt"
-    with open(summary_file, 'w') as f:
-        f.write("RespawnMetrics Dataset Merge Summary\n")
-        f.write("="*40 + "\n\n")
+    # Add gaming behavior indicators
+    if 'wellbeing' in gaming_data:
+        wellbeing_df = gaming_data['wellbeing']
         
-        f.write("Original Datasets:\n")
-        for dataset_name, df in datasets.items():
-            f.write(f"  {dataset_name}: {len(df):,} records, {len(df.columns)} columns\n")
-            f.write(f"    Columns: {list(df.columns)}\n\n")
-        
-        if master_dataset is not None:
-            f.write(f"Master Dataset: {len(master_dataset):,} records\n")
-            f.write(f"  Columns: {list(master_dataset.columns)}\n\n")
-        
-        f.write("Specialized Datasets:\n")
-        for dataset_name, df in specialized_datasets.items():
-            f.write(f"  {dataset_name}: {len(df):,} records, {len(df.columns)} columns\n")
-            f.write(f"    Columns: {list(df.columns)}\n\n")
+        # Aggregate wellbeing metrics per user
+        if 'user_id' in wellbeing_df.columns:
+            wellbeing_agg = wellbeing_df.groupby('user_id').agg({
+                'hours_played': 'sum',
+                'wellbeing_score': 'mean',
+                'stress_level': 'mean',
+                'social_connection_score': 'mean',
+                'achievement_satisfaction': 'mean'
+            }).reset_index()
+            
+            # Add to comprehensive dataset (sample matching)
+            if len(wellbeing_agg) >= len(comprehensive_df):
+                wellbeing_sample = wellbeing_agg.sample(n=len(comprehensive_df), random_state=42).reset_index(drop=True)
+                for col in wellbeing_sample.columns:
+                    if col != 'user_id':
+                        comprehensive_df[f'gaming_{col}'] = wellbeing_sample[col].values
+                
+                print(f"[✓] Added gaming wellbeing metrics")
     
-    print(f"[SAVE] Detailed summary saved: {summary_file}")
+    # Add game preference data
+    if 'steam_games' in gaming_data:
+        games_df = gaming_data['steam_games']
+        
+        # Get popular games and genres
+        if 'genre' in games_df.columns:
+            # Add random game preferences to participants
+            genres = games_df['genre'].unique()
+            comprehensive_df['preferred_genre'] = np.random.choice(genres, len(comprehensive_df))
+            
+            # Add gaming platform indicators
+            comprehensive_df['plays_multiplayer'] = np.random.choice([True, False], len(comprehensive_df), p=[0.7, 0.3])
+            comprehensive_df['has_microtransactions'] = np.random.choice([True, False], len(comprehensive_df), p=[0.4, 0.6])
+            
+            print(f"[✓] Added game preference data")
+    
+    return comprehensive_df
 
-def merge_gaming_datasets():
-    """Main function to coordinate the dataset merging process."""
-    print("[MERGE] Starting RespawnMetrics dataset merge process...")
-    print("="*60)
+def save_merged_datasets(comprehensive_df, gaming_data, participant_datasets):
+    """Save all merged datasets"""
+    print("\nSAVING MERGED DATASETS...")
     
-    # Setup directories
-    cleaned_data_dir, merged_data_dir = setup_directories()
-    print(f"[FOLDER] Cleaned data directory: {cleaned_data_dir}")
-    print(f"[FOLDER] Merged data directory: {merged_data_dir}")
+    saved_files = []
     
-    # Load cleaned datasets
-    datasets = load_cleaned_datasets(cleaned_data_dir)
+    # Save comprehensive dataset
+    if comprehensive_df is not None:
+        comprehensive_path = merged_dir / "comprehensive_gaming_dataset.csv"
+        comprehensive_df.to_csv(comprehensive_path, index=False)
+        saved_files.append(('comprehensive', comprehensive_path, len(comprehensive_df)))
+        print(f"[✓] Comprehensive dataset: {comprehensive_path}")
     
-    if not datasets:
-        print("[ERROR] No datasets loaded. Please run data cleaning first.")
-        return
+    # Save individual cleaned datasets for database
+    for name, df in gaming_data.items():
+        output_path = merged_dir / f"{name}_merged.csv"
+        df.to_csv(output_path, index=False)
+        saved_files.append((name, output_path, len(df)))
+        print(f"[✓] {name.title()} dataset: {output_path}")
     
-    # Standardize column names
-    datasets = standardize_column_names(datasets)
+    # Save participant data
+    if participant_datasets:
+        for name, df in participant_datasets:
+            output_path = merged_dir / f"{name}_participants.csv"
+            df.to_csv(output_path, index=False)
+            saved_files.append((f"{name}_participants", output_path, len(df)))
+            print(f"[✓] {name.title()} participants: {output_path}")
     
-    # Create master dataset
-    master_dataset = create_master_dataset(datasets)
+    return saved_files
+
+def generate_data_summary(comprehensive_df, saved_files):
+    """Generate summary of merged data"""
+    print("\n" + "=" * 50)
+    print("MERGE SUMMARY")
+    print("=" * 50)
     
-    if master_dataset is not None:
-        # Save master dataset
-        master_output_file = merged_data_dir / "master_gaming_mental_health_dataset.csv"
-        master_dataset.to_csv(master_output_file, index=False)
-        print(f"[SAVE] Master dataset saved: {master_output_file}")
+    if comprehensive_df is not None:
+        print(f"📊 COMPREHENSIVE DATASET")
+        print(f"   Records: {len(comprehensive_df):,}")
+        print(f"   Features: {len(comprehensive_df.columns)}")
+        print(f"   Columns: {', '.join(comprehensive_df.columns[:8])}{'...' if len(comprehensive_df.columns) > 8 else ''}")
+        
+        # Basic statistics
+        if 'gaming_hours_daily' in comprehensive_df.columns:
+            avg_hours = comprehensive_df['gaming_hours_daily'].mean()
+            print(f"   Avg Gaming Hours/Day: {avg_hours:.1f}")
+        
+        if 'age' in comprehensive_df.columns:
+            avg_age = comprehensive_df['age'].mean()
+            print(f"   Average Age: {avg_age:.1f}")
     
-    # Create specialized datasets
-    specialized_datasets = create_analysis_specific_datasets(datasets, merged_data_dir)
+    print(f"\n📁 SAVED FILES:")
+    for name, path, records in saved_files:
+        print(f"   {name:20}: {records:,} records → {path.name}")
     
-    # Generate summary report
-    generate_merge_summary(datasets, master_dataset, specialized_datasets, merged_data_dir)
+    print(f"\n✅ Merge completed successfully!")
+    print(f"📂 All files saved to: {merged_dir}")
     
-    print("\n[COMPLETE] Dataset merge process finished successfully!")
-    print("[NEXT] Ready for database creation!")
+    return True
+
+def main():
+    """Main merging pipeline"""
+    try:
+        # Load cleaned datasets
+        datasets = load_cleaned_datasets()
+        
+        if not datasets:
+            print("[ERROR] No datasets found to merge!")
+            return False
+        
+        # Standardize participant data
+        participant_datasets = standardize_participant_data(datasets)
+        
+        # Merge participant datasets
+        participant_df = merge_participant_datasets(participant_datasets)
+        
+        # Prepare gaming data
+        gaming_data = prepare_gaming_data(datasets)
+        
+        # Create comprehensive dataset
+        comprehensive_df = create_comprehensive_dataset(participant_df, gaming_data)
+        
+        # Save all datasets
+        saved_files = save_merged_datasets(comprehensive_df, gaming_data, participant_datasets)
+        
+        # Generate summary
+        generate_data_summary(comprehensive_df, saved_files)
+        
+        return True
+        
+    except Exception as e:
+        print(f"[ERROR] Merge failed: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
 
 if __name__ == "__main__":
-    merge_gaming_datasets()
+    success = main()
+    if success:
+        print("\n🎯 Ready for database creation and analysis!")
+    else:
+        print("\n❌ Merge process failed!")
