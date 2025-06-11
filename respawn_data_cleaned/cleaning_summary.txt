@@ -1,0 +1,17 @@
+RespawnMetrics Data Cleaning Summary
+========================================
+
+Total records processed: 4,500
+
+gaming_anxiety: 1,000 records
+  Columns: ['participant_id', 'gaming_hours_weekly', 'anxiety_score', 'age', 'gaming_preference']
+
+gaming_aggression: 800 records
+  Columns: ['participant_id', 'gaming_hours_weekly', 'aggression_score', 'age', 'gaming_preference']
+
+video_games_wellbeing: 1,200 records
+  Columns: ['participant_id', 'gaming_hours_weekly', 'wellbeing_score', 'life_satisfaction', 'age', 'gaming_preference']
+
+gaming_7scales_prediction: 1,500 records
+  Columns: ['participant_id', 'gaming_hours_weekly', 'scale_1_score', 'scale_2_score', 'scale_3_score', 'scale_4_score', 'scale_5_score', 'scale_6_score', 'scale_7_score', 'age', 'gaming_preference']
+

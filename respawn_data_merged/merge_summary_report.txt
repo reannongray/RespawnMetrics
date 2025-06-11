@@ -1,0 +1,35 @@
+RespawnMetrics Dataset Merge Summary
+========================================
+
+Original Datasets:
+  anxiety: 1,000 records, 5 columns
+    Columns: ['participant_id', 'gaming_hours_weekly', 'anxiety_score', 'age', 'gaming_preference']
+
+  aggression: 800 records, 5 columns
+    Columns: ['participant_id', 'gaming_hours_weekly', 'aggression_score', 'age', 'gaming_preference']
+
+  wellbeing: 1,500 records, 11 columns
+    Columns: ['participant_id', 'game_title', 'hours_played', 'wellbeing_score', 'life_satisfaction', 'affect_balance', 'autonomy', 'competence', 'relatedness', 'intrinsic_motivation', 'extrinsic_motivation']
+
+  prediction_scales: 1,200 records, 9 columns
+    Columns: ['participant_id', 'gaming_addiction_risk', 'social_gaming_score', 'escapism_score', 'achievement_score', 'immersion_score', 'skill_development_score', 'recreation_score', 'total_gaming_hours']
+
+  steam_games: 79 records, 12 columns
+    Columns: ['app_id', 'game_title', 'type', 'release_date', 'price_usd', 'metacritic_score', 'recommendations', 'categories', 'genres', 'short_description', 'developers', 'publishers']
+
+Master Dataset: 3,300 records
+  Columns: ['participant_id', 'age', 'gaming_hours_weekly', 'gaming_preference', 'data_source', 'game_title']
+
+Specialized Datasets:
+  mental_health: 3,300 records, 9 columns
+    Columns: ['age', 'aggression_score', 'anxiety_score', 'gaming_hours_weekly', 'gaming_preference', 'hours_played', 'participant_id', 'source_dataset', 'wellbeing_score']
+
+  gaming_behavior: 1,000 records, 6 columns
+    Columns: ['participant_id', 'age', 'gaming_hours_weekly', 'gaming_hours_weekly', 'gaming_preference', 'source_dataset']
+
+  prediction_scales: 1,200 records, 9 columns
+    Columns: ['participant_id', 'gaming_addiction_risk', 'social_gaming_score', 'escapism_score', 'achievement_score', 'immersion_score', 'skill_development_score', 'recreation_score', 'total_gaming_hours']
+
+  steam_games: 79 records, 12 columns
+    Columns: ['app_id', 'game_title', 'type', 'release_date', 'price_usd', 'metacritic_score', 'recommendations', 'categories', 'genres', 'short_description', 'developers', 'publishers']
+

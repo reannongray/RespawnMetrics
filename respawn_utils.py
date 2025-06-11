@@ -1,6 +1,6 @@
 """
 Custom utility functions for Respawn Metrics project.
-This module contains at least 3 custom functions with type hints and docstrings as required for capstone.
+
 """
 
 import pandas as pd
@@ -319,7 +319,7 @@ def create_predictive_features(df: pd.DataFrame) -> pd.DataFrame:
         return df  # Return original DataFrame on error
 
 # Helper function for data validation
-def validate_dataset_quality(df: pd.DataFrame, required_cols: List[str]) -> Dict[str, Union[bool, int, float]]:
+def validate_dataset_quality(df: pd.DataFrame, required_cols: List[str]) -> Dict[str, Union[bool, int, float, str, List[str]]]:
     """
     Validate dataset quality and completeness.
     
@@ -328,7 +328,7 @@ def validate_dataset_quality(df: pd.DataFrame, required_cols: List[str]) -> Dict
         required_cols (List[str]): List of required column names
         
     Returns:
-        Dict[str, Union[bool, int, float]]: Quality metrics
+        Dict[str, Union[bool, int, float, str, List[str]]]: Quality metrics including missing columns and error messages
     """
     try:
         quality_report = {
