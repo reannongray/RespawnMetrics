@@ -3,15 +3,36 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RespawnMetrics - Gaming Psychology Research</title>
+    <title>RespawnMetrics - Gaming Psychology Research Platform</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap');
+        
+        :root {
+            --mystic-indigo: #4B0082;
+            --mystic-violet: #8A2BE2;
+            --mystic-cyan: #00FFFF;
+            --mystic-pink: #FF1493;
+            --mystic-gray: #2F4F4F;
+            --text-dark: #2C3E50;
+            --card-bg: #FFFFFF;
+            --mystic-gradient: linear-gradient(135deg, var(--mystic-indigo) 0%, var(--mystic-violet) 35%, var(--mystic-cyan) 70%, var(--mystic-pink) 100%);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
         
         body {
             font-family: 'Poppins', sans-serif;
-            margin: 0;
-            background: linear-gradient(135deg, #4B0082 0%, #8A2BE2 35%, #00FFFF 70%, #FF1493 100%);
-            color: white;
+            line-height: 1.6;
+            color: var(--text-dark);
+            overflow-x: hidden;
+        }
+        
+        .hero {
+            background: var(--mystic-gradient);
             min-height: 100vh;
             display: flex;
             flex-direction: column;
@@ -19,62 +40,444 @@
             align-items: center;
             text-align: center;
             padding: 2rem;
+            position: relative;
+            overflow: hidden;
         }
         
-        h1 {
-            font-size: 4rem;
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="gaming" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="10" cy="10" r="2" fill="rgba(255,255,255,0.1)"/></pattern></defs><rect width="100" height="100" fill="url(%23gaming)"/></svg>');
+            opacity: 0.3;
+        }
+        
+        .hero-content {
+            position: relative;
+            z-index: 1;
+            max-width: 1000px;
+        }
+        
+        .hero h1 {
+            font-size: 5rem;
+            font-weight: 800;
             margin-bottom: 1rem;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            color: white;
+            text-shadow: 3px 3px 6px rgba(0,0,0,0.4);
+            animation: fadeInUp 1s ease-out;
         }
         
-        .subtitle {
-            font-size: 1.5rem;
-            margin-bottom: 2rem;
+        .hero .tagline {
+            font-size: 1.8rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            color: white;
+            opacity: 0.95;
+            animation: fadeInUp 1s ease-out 0.2s both;
+        }
+        
+        .hero .description {
+            font-size: 1.3rem;
+            margin-bottom: 3rem;
+            color: white;
             opacity: 0.9;
+            max-width: 800px;
+            animation: fadeInUp 1s ease-out 0.4s both;
         }
         
-        .buttons {
+        .hero-buttons {
             display: flex;
             gap: 2rem;
             flex-wrap: wrap;
             justify-content: center;
+            animation: fadeInUp 1s ease-out 0.6s both;
         }
         
-        .btn {
-            background: rgba(255,255,255,0.2);
-            border: 2px solid white;
+        .hero-btn {
+            background: rgba(255,255,255,0.15);
+            border: 3px solid white;
             color: white;
-            padding: 1rem 2rem;
-            border-radius: 50px;
+            padding: 1.2rem 2.5rem;
+            border-radius: 60px;
             text-decoration: none;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            backdrop-filter: blur(10px);
+            font-weight: 700;
+            font-size: 1.2rem;
+            transition: all 0.4s ease;
+            backdrop-filter: blur(15px);
+            position: relative;
+            overflow: hidden;
         }
         
-        .btn:hover {
+        .hero-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+        
+        .hero-btn:hover::before {
+            left: 100%;
+        }
+        
+        .hero-btn:hover {
             background: white;
-            color: #4B0082;
-            transform: translateY(-3px);
+            color: var(--mystic-indigo);
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.3);
         }
         
-        .primary {
+        .hero-btn.primary {
             background: white;
-            color: #4B0082;
+            color: var(--mystic-indigo);
+            border-color: white;
+            box-shadow: 0 8px 25px rgba(255,255,255,0.3);
         }
         
-        .primary:hover {
-            background: #4B0082;
+        .hero-btn.primary:hover {
+            background: var(--mystic-indigo);
             color: white;
+            box-shadow: 0 15px 35px rgba(75,0,130,0.4);
+        }
+        
+        .cta-btn {
+            background: var(--mystic-violet);
+            border: 3px solid var(--mystic-violet);
+            color: white;
+            padding: 1.2rem 2.5rem;
+            border-radius: 60px;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 1.2rem;
+            transition: all 0.4s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .cta-btn:hover {
+            background: transparent;
+            color: var(--mystic-violet);
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(138, 43, 226, 0.3);
+        }
+        
+        .cta-btn.primary {
+            background: var(--mystic-cyan);
+            border-color: var(--mystic-cyan);
+            color: var(--mystic-indigo);
+        }
+        
+        .cta-btn.primary:hover {
+            background: transparent;
+            color: var(--mystic-cyan);
+            border-color: var(--mystic-cyan);
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0, 255, 255, 0.3);
+        }
+        
+        .features-section {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 5rem 2rem;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .section-title {
+            text-align: center;
+            font-size: 3rem;
+            font-weight: 800;
+            color: var(--mystic-indigo);
+            margin-bottom: 1rem;
+        }
+        
+        .section-subtitle {
+            text-align: center;
+            font-size: 1.4rem;
+            color: var(--mystic-gray);
+            margin-bottom: 4rem;
+        }
+        
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 2.5rem;
+        }
+        
+        .feature-card {
+            background: var(--card-bg);
+            padding: 2.5rem;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(138, 43, 226, 0.1);
+            border: 2px solid transparent;
+            transition: all 0.4s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 5px;
+            background: var(--mystic-gradient);
+            transform: scaleX(0);
+            transition: transform 0.4s ease;
+        }
+        
+        .feature-card:hover::before {
+            transform: scaleX(1);
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 40px rgba(138, 43, 226, 0.2);
+            border-color: var(--mystic-violet);
+        }
+        
+        .feature-icon {
+            font-size: 3.5rem;
+            margin-bottom: 1.5rem;
+            display: block;
+        }
+        
+        .feature-title {
+            font-size: 1.6rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: var(--mystic-indigo);
+        }
+        
+        .feature-description {
+            font-size: 1.1rem;
+            color: var(--mystic-gray);
+            line-height: 1.7;
+        }
+        
+        .stats-section {
+            background: var(--mystic-gradient);
+            padding: 4rem 2rem;
+            color: white;
+            text-align: center;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 2rem;
+            max-width: 800px;
+            margin: 2rem auto;
+        }
+        
+        .stat-item {
+            padding: 1.5rem;
+        }
+        
+        .stat-number {
+            font-size: 3rem;
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+        }
+        
+        .stat-label {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        
+        .cta-section {
+            background: var(--card-bg);
+            padding: 5rem 2rem;
+            text-align: center;
+        }
+        
+        .cta-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--mystic-indigo);
+            margin-bottom: 1rem;
+        }
+        
+        .cta-description {
+            font-size: 1.3rem;
+            color: var(--mystic-gray);
+            margin-bottom: 3rem;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        .footer {
+            background: var(--mystic-indigo);
+            color: white;
+            text-align: center;
+            padding: 3rem 2rem;
+        }
+        
+        .footer h3 {
+            margin-bottom: 1rem;
+        }
+        
+        .footer a {
+            color: var(--mystic-cyan);
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+        
+        .footer a:hover {
+            color: var(--mystic-pink);
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 3rem;
+            }
+            .hero .tagline {
+                font-size: 1.4rem;
+            }
+            .hero .description {
+                font-size: 1.1rem;
+            }
+            .hero-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+            .section-title {
+                font-size: 2rem;
+            }
         }
     </style>
 </head>
 <body>
-    <h1>🎮 RespawnMetrics</h1>
-    <div class="subtitle">Gaming Psychology Research Platform</div>
-    <div class="buttons">
-        <a href="https://respawnmetrics.streamlit.app/" class="btn primary">🚀 Live Dashboard</a>
-        <a href="https://github.com/reannongray/RespawnMetrics" class="btn">💻 Source Code</a>
-    </div>
+    <section class="hero">
+        <div class="hero-content">
+            <h1>🎮 RespawnMetrics</h1>
+            <div class="tagline">Gaming Psychology Research Platform</div>
+            <div class="description">
+                Advanced data science platform distinguishing healthy gaming enthusiasm from problematic patterns through 
+                interactive analytics, machine learning, and research-based psychological assessments.
+            </div>
+            <div class="hero-buttons">
+                <a href="https://respawnmetrics.streamlit.app/" class="hero-btn primary">🚀 Launch Live Dashboard</a>
+                <a href="https://github.com/reannongray/RespawnMetrics" class="hero-btn">💻 View Source Code</a>
+                <a href="#features" class="hero-btn">🔬 Explore Features</a>
+            </div>
+        </div>
+    </section>
+
+    <section id="features" class="features-section">
+        <div class="container">
+            <h2 class="section-title">🔬 Research Platform Features</h2>
+            <p class="section-subtitle">Comprehensive gaming psychology analysis tools for researchers and professionals</p>
+            
+            <div class="features-grid">
+                <div class="feature-card">
+                    <span class="feature-icon">📊</span>
+                    <h3 class="feature-title">Live Research Dashboard</h3>
+                    <p class="feature-description">Real-time analytics from 1,000+ gaming psychology participants with interactive visualizations, correlation analysis, and dynamic filtering capabilities.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <span class="feature-icon">🎯</span>
+                    <h3 class="feature-title">Psychology Assessment Quiz</h3>
+                    <p class="feature-description">Research-validated assessment tool providing personalized insights, risk categorization, and evidence-based recommendations for healthy gaming habits.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <span class="feature-icon">🤖</span>
+                    <h3 class="feature-title">Machine Learning Classification</h3>
+                    <p class="feature-description">Advanced algorithms identifying healthy enthusiasm vs concerning gaming patterns for early intervention and clinical decision support.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <span class="feature-icon">📈</span>
+                    <h3 class="feature-title">Predictive Analytics</h3>
+                    <p class="feature-description">Statistical modeling predicting gaming behavior outcomes, mental health correlations, and intervention effectiveness using validated psychological scales.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <span class="feature-icon">🔗</span>
+                    <h3 class="feature-title">Correlation Analysis</h3>
+                    <p class="feature-description">Advanced statistical analysis revealing relationships between gaming habits, mental health indicators, and protective/risk factors across multiple dimensions.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <span class="feature-icon">🏥</span>
+                    <h3 class="feature-title">Clinical Research Tools</h3>
+                    <p class="feature-description">Professional-grade analytics for researchers, clinicians, and mental health professionals studying gaming psychology and digital wellness.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="stats-section">
+        <div class="container">
+            <h2 class="section-title">📊 Research Impact</h2>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-number">1,000+</div>
+                    <div class="stat-label">Research Participants</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">6</div>
+                    <div class="stat-label">Validated Datasets</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">15+</div>
+                    <div class="stat-label">Psychological Metrics</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">4</div>
+                    <div class="stat-label">Risk Categories</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="cta-section">
+        <div class="container">
+            <h2 class="cta-title">Ready to Explore Gaming Psychology?</h2>
+            <p class="cta-description">
+                Experience the full interactive research platform and take our validated psychological assessment
+            </p>
+            <div class="hero-buttons">
+                <a href="https://respawnmetrics.streamlit.app/" class="cta-btn primary">🎮 Start Analysis</a>
+                <a href="https://github.com/reannongray/RespawnMetrics" class="cta-btn">📋 Research Documentation</a>
+            </div>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <h3>🎮 RespawnMetrics Research Platform</h3>
+        <p><strong>Built by Reannon Gray</strong> | Data Science Capstone Project</p>
+        <p>
+            <a href="https://respawnmetrics.streamlit.app/">Live Dashboard</a> | 
+            <a href="https://github.com/reannongray/RespawnMetrics">GitHub Repository</a> | 
+            <a href="https://reannoncodes.site">Developer Portfolio</a>
+        </p>
+        <p style="margin-top: 1rem; opacity: 0.8;">
+            Transforming gaming psychology research through interactive data science
+        </p>
+    </footer>
 </body>
 </html>
